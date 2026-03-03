@@ -11,6 +11,5 @@ pkgs.mkShell {
 
   # Load custom bash code
   shellHook = ''
-    unset DOCKER_HOST
   '';
 }
