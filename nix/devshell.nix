@@ -1,15 +1,28 @@
-{ pkgs }:
+{ pkgs, inputs }:
+let
+  pkgs-playwright = import inputs.nixpkgs-playwright { system = pkgs.stdenv.system; };
+  browsers = (builtins.fromJSON (builtins.readFile "${pkgs-playwright.playwright-driver}/browsers.json")).browsers;
+  chromium-rev = (builtins.head (builtins.filter (x: x.name == "chromium") browsers)).revision;
+in
 pkgs.mkShell {
   # Add build dependencies
   packages = with pkgs; [
     pnpm_9
     nodejs_22
+    google-chrome
   ];
 
   # Add environment variables
-  env = { };
+  env = {
+    PLAYWRIGHT_BROWSERS_PATH = "${pkgs-playwright.playwright-driver.browsers}";
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = true;
+    PLAYWRIGHT_NODEJS_PATH = "${pkgs.nodejs_22}/bin/node";
+    PLAYWRIGHT_LAUNCH_OPTIONS_EXECUTABLE_PATH = "${pkgs-playwright.playwright-driver.browsers}/chromium-${chromium-rev}/chrome-linux64/chrome";
+  };
 
   # Load custom bash code
   shellHook = ''
+
   '';
 }
+
