@@ -1,12 +1,13 @@
 import path from 'node:path';
 
 import webpack from 'webpack';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 /** @type {import('webpack').Configuration} */
 const config = {
-  devtool: 'inline-source-map',
+  devtool: false,
   entry: './src/main.tsx',
-  mode: 'none',
+  mode: 'production',
   module: {
     rules: [
       {
@@ -23,7 +24,6 @@ const config = {
                 '@babel/preset-env',
                 {
                   corejs: '3.41',
-                  forceAllTransforms: true,
                   targets: 'defaults',
                   useBuiltIns: 'entry',
                 },
@@ -53,15 +53,34 @@ const config = {
   },
   output: {
     chunkFilename: 'chunk-[contenthash].js',
-    chunkFormat: false,
     filename: 'main.js',
     path: path.resolve(import.meta.dirname, './dist'),
     publicPath: 'auto',
   },
-  plugins: [
-    new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }),
-    new webpack.EnvironmentPlugin({ API_BASE_URL: '/api', NODE_ENV: '' }),
-  ],
+  // build plugins (BundleAnalyzerPlugin added conditionally via env var)
+  plugins: (() => {
+    /** @type {Array<any>} */
+    const list = [
+      new webpack.EnvironmentPlugin({ API_BASE_URL: '/api', NODE_ENV: '' }),
+    ];
+
+    // Enable bundle analyzer when ANALYZE is set to "1" or "true"
+    const analyze = process.env['ANALYZE'] === '1' || process.env['ANALYZE'] === 'true';
+    if (analyze) {
+      list.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          // writes a report to dist/bundle-report.html and a stats file
+          reportFilename: path.resolve(import.meta.dirname, './dist/bundle-report.html'),
+          openAnalyzer: false,
+          generateStatsFile: true,
+          statsFilename: path.resolve(import.meta.dirname, './dist/stats.json'),
+        })
+      );
+    }
+
+    return list;
+  })(),
   resolve: {
     alias: {
       '@ffmpeg/core$': path.resolve(import.meta.dirname, 'node_modules', '@ffmpeg/core/dist/umd/ffmpeg-core.js'),
